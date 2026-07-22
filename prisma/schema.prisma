@@ -7,34 +7,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Profile Table
-model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  workouts  Workout[] // Relation to workouts
+// --- NEXTAUTH MODELS ---
+model Account {
+  id                 String  @id @default(uuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
 }
 
-// Workouts Table (e.g., "Push Day", "Leg Day")
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  workouts      Workout[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// --- OVERLOAD APP MODELS ---
 model Workout {
   id        String    @id @default(uuid())
   title     String
   date      DateTime  @default(now())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sets      Set[]     // Relation to sets
+  sets      Set[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
 
-// Sets Table (e.g., Deadlift - 100kg - 5 Reps)
 model Set {
   id        String   @id @default(uuid())
   exercise  String
-  weight    Float    // Weight lifted
-  reps      Int      // Number of reps completed
+  weight    Float
+  reps      Int
   workoutId String
   workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
