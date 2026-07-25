@@ -9,7 +9,6 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Check if the user is authenticated
   const session = await getServerSession(authOptions);
   
   if (!session) {
@@ -17,13 +16,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-[#0A0A0A] text-slate-200 overflow-hidden font-sans">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0">
         <Navbar />
-        {/* The active page content will be injected into this main tag */}
         <main className="flex-1 p-8 overflow-y-auto">
-          {children}
+          <div className="max-w-6xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
