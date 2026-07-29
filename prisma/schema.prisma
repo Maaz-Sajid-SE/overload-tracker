@@ -45,6 +45,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   workouts      Workout[]
+  inventory     EquipmentInventory?
 }
 
 model VerificationToken {
@@ -74,4 +75,24 @@ model Set {
   workoutId String
   workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model EquipmentInventory {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Plate Quantities (Defaults to standard commercial gym availability)
+  plate25kg   Int      @default(0)
+  plate20kg   Int      @default(6) // E.g., 6 twenty-kilo plates
+  plate15kg   Int      @default(2)
+  plate10kg   Int      @default(2)
+  plate5kg    Int      @default(2)
+  plate2_5kg  Int      @default(2)
+  plate1_25kg Int      @default(2)
+  
+  // The weight of the barbell itself
+  barbellWeight Float  @default(20.0) 
+  
+  updatedAt   DateTime @updatedAt
 }

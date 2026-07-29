@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Workout, Set } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,9 +12,13 @@ export default async function DashboardHome() {
     where: { email: session?.user?.email as string },
   });
 
+
+  // Define a type that combines a Workout with its nested Sets
+  type WorkoutWithSets = Workout & { sets: Set[] };
+
   let totalWorkouts = 0;
   let totalVolume = 0;
-  let recentLogs: any[] = [];
+  let recentLogs: WorkoutWithSets[] = [];
 
   // 2. Fetch the Data
   if (user) {
@@ -76,14 +80,14 @@ export default async function DashboardHome() {
       
       {/* Data Visualization / Recent Activity Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-[#111111] p-6 rounded-xl border border-slate-800 min-h-[400px]">
+        <div className="lg:col-span-2 bg-[#111111] p-6 rounded-xl border border-slate-800 min-h-96">
            <h3 className="text-sm font-semibold text-slate-300 border-b border-slate-800 pb-3 mb-4">Progression Chart</h3>
            <div className="h-full flex items-center justify-center">
               <p className="text-slate-600 text-sm italic">Insufficient data to generate progression graph.</p>
            </div>
         </div>
         
-        <div className="bg-[#111111] p-6 rounded-xl border border-slate-800 min-h-[400px]">
+        <div className="bg-[#111111] p-6 rounded-xl border border-slate-800 min-h-96">
            <h3 className="text-sm font-semibold text-slate-300 border-b border-slate-800 pb-3 mb-4">Recent Logs</h3>
            <div className="space-y-4">
               {recentLogs.length > 0 ? (
