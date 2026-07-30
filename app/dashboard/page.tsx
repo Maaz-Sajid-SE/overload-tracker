@@ -77,6 +77,8 @@ export default async function DashboardHome() {
           </div>
         </div>
       </div>
+
+      
       
       {/* Data Visualization / Recent Activity Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
