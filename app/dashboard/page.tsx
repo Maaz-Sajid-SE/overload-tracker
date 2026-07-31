@@ -1,12 +1,18 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { PrismaClient, Workout, Set } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 const prisma = new PrismaClient();
 
 export default async function DashboardHome() {
   const session = await getServerSession(authOptions);
 
+  // 🛡️ THE GUARD: If there is no session, boot them to the login screen
+  if (!session?.user?.email) {
+    redirect("/api/auth/signin");
+  }
+  
   // 1. Identify the User
   const user = await prisma.user.findUnique({
     where: { email: session?.user?.email as string },

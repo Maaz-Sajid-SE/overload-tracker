@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createWorkout } from "@/app/actions/workoutActions";
+import { getInventory } from "@/app/actions/inventoryActions";
 import { useRouter } from "next/navigation";
+import BarbellGraphic from "@/app/components/BarbellGraphic";
+import { calculateBarbellLoadout, Inventory } from "@/app/utils/plateMath";
 
 export default function LogWorkoutPage() {
   const router = useRouter();
@@ -12,45 +15,70 @@ export default function LogWorkoutPage() {
   const [title, setTitle] = useState("");
   const [sets, setSets] = useState([{ exercise: "", weight: "", reps: "" }]);
 
-  // Add a new empty set to the UI
-  const addSet = () => {
-    setSets([...sets, { exercise: "", weight: "", reps: "" }]);
+  // Live Plate Calculator State
+  const [inventory, setInventory] = useState<Inventory | null>(null);
+  const [previewPlates, setPreviewPlates] = useState<number[]>([]);
+  const [activeWeight, setActiveWeight] = useState<number>(0);
+
+  // 1. Fetch the user's equipment inventory when the page loads
+  useEffect(() => {
+    async function loadInventory() {
+      try {
+        const userInventory = await getInventory();
+        setInventory(userInventory);
+      } catch (error) {
+        console.error("Failed to load inventory:", error);
+      }
+    }
+    loadInventory();
+  }, []);
+
+  // 2. Handle weight input and trigger the Knapsack algorithm
+  const handleWeightInput = (index: number, value: string) => {
+    // Update the form state
+    const updatedSets = [...sets];
+    updatedSets[index] = { ...updatedSets[index], weight: value };
+    setSets(updatedSets);
+
+    // Run the plate math for the live preview
+    const weightNum = Number(value);
+    if (weightNum > 0 && inventory) {
+      setActiveWeight(weightNum);
+      const { plates } = calculateBarbellLoadout(weightNum, inventory);
+      setPreviewPlates(plates);
+    } else {
+      setPreviewPlates([]);
+      setActiveWeight(0);
+    }
   };
 
-  // Update a specific set's data
+  const addSet = () => setSets([...sets, { exercise: "", weight: "", reps: "" }]);
+  
   const updateSet = (index: number, field: string, value: string) => {
     const updatedSets = [...sets];
     updatedSets[index] = { ...updatedSets[index], [field]: value };
     setSets(updatedSets);
   };
 
-  // Remove a set from the UI
   const removeSet = (index: number) => {
     const updatedSets = sets.filter((_, i) => i !== index);
     setSets(updatedSets);
   };
 
-  // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      // Convert string inputs to numbers for the database
       const formattedSets = sets.map((set) => ({
         exercise: set.exercise,
         weight: Number(set.weight),
         reps: Number(set.reps),
       }));
-
-      // Call the Server Action we built yesterday
       await createWorkout(title, formattedSets);
-      
-      // Redirect back to the dashboard on success
       router.push("/dashboard");
     } catch (error) {
       console.error("Submission failed", error);
-      alert("Failed to log workout. Please try again.");
+      alert("Failed to log workout.");
     } finally {
       setIsSubmitting(false);
     }
@@ -63,9 +91,16 @@ export default function LogWorkoutPage() {
         <p className="text-slate-400 mt-1 text-sm">Record your heavy compounds and track progression.</p>
       </header>
 
+      {/* 🚀 THE LIVE PLATE CALCULATOR */}
+      <div className="bg-[#111111] p-6 rounded-xl border border-slate-800 space-y-4">
+        <div className="flex justify-between items-end border-b border-slate-800 pb-2">
+          <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider">Live Barbell Preview</h3>
+          <span className="text-xs text-slate-500">{activeWeight > 0 ? `${activeWeight} kg Target` : "Awaiting Input"}</span>
+        </div>
+        <BarbellGraphic plates={previewPlates} />
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6 bg-[#111111] p-8 rounded-xl border border-slate-800">
-        
-        {/* Workout Title */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Session Title</label>
           <input 
@@ -78,7 +113,6 @@ export default function LogWorkoutPage() {
           />
         </div>
 
-        {/* Dynamic Sets Area */}
         <div className="space-y-4 pt-4 border-t border-slate-800">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-semibold text-slate-300">Working Sets</h3>
@@ -109,7 +143,8 @@ export default function LogWorkoutPage() {
                   required
                   min="0"
                   value={set.weight}
-                  onChange={(e) => updateSet(index, "weight", e.target.value)}
+                  // We swap out the generic updateSet here for our new live preview handler
+                  onChange={(e) => handleWeightInput(index, e.target.value)}
                   placeholder="Weight" 
                   className="w-full bg-transparent border-b border-slate-700 px-2 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm"
                 />
@@ -133,7 +168,6 @@ export default function LogWorkoutPage() {
                     type="button" 
                     onClick={() => removeSet(index)}
                     className="text-red-400 hover:text-red-300 transition-colors"
-                    title="Remove Set"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
@@ -143,7 +177,6 @@ export default function LogWorkoutPage() {
           ))}
         </div>
 
-        {/* Submit Button */}
         <div className="pt-6">
           <button 
             type="submit" 
