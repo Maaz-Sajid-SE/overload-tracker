@@ -35,13 +35,13 @@ export default function LogWorkoutPage() {
 
   // 2. Handle weight input and trigger the Knapsack algorithm
   const handleWeightInput = (index: number, value: string) => {
-    // Update the form state
     const updatedSets = [...sets];
     updatedSets[index] = { ...updatedSets[index], weight: value };
     setSets(updatedSets);
 
-    // Run the plate math for the live preview
     const weightNum = Number(value);
+    
+    // Only run the math if the inventory has successfully loaded from the database
     if (weightNum > 0 && inventory) {
       setActiveWeight(weightNum);
       const { plates } = calculateBarbellLoadout(weightNum, inventory);
@@ -92,10 +92,12 @@ export default function LogWorkoutPage() {
       </header>
 
       {/* 🚀 THE LIVE PLATE CALCULATOR */}
-      <div className="bg-[#111111] p-6 rounded-xl border border-slate-800 space-y-4">
+      <div className="bg-[#111111] p-6 rounded-xl border border-slate-800 space-y-4 shadow-2xl">
         <div className="flex justify-between items-end border-b border-slate-800 pb-2">
           <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider">Live Barbell Preview</h3>
-          <span className="text-xs text-slate-500">{activeWeight > 0 ? `${activeWeight} kg Target` : "Awaiting Input"}</span>
+          <span className="text-xs text-slate-500">
+            {!inventory ? "Fetching Inventory..." : activeWeight > 0 ? `${activeWeight} kg Target` : "Awaiting Input"}
+          </span>
         </div>
         <BarbellGraphic plates={previewPlates} />
       </div>
@@ -142,11 +144,11 @@ export default function LogWorkoutPage() {
                   type="number" 
                   required
                   min="0"
+                  disabled={!inventory} // Lock input until database load completes
                   value={set.weight}
-                  // We swap out the generic updateSet here for our new live preview handler
                   onChange={(e) => handleWeightInput(index, e.target.value)}
                   placeholder="Weight" 
-                  className="w-full bg-transparent border-b border-slate-700 px-2 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm"
+                  className="w-full bg-transparent border-b border-slate-700 px-2 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm disabled:opacity-50"
                 />
                 <span className="absolute right-2 top-2 text-xs text-slate-500">kg</span>
               </div>
@@ -180,7 +182,7 @@ export default function LogWorkoutPage() {
         <div className="pt-6">
           <button 
             type="submit" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || !inventory}
             className="w-full bg-emerald-500 text-slate-950 font-bold text-sm tracking-wide py-4 rounded-lg hover:bg-emerald-400 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
           >
             {isSubmitting ? "LOGGING DATA..." : "SAVE WORKOUT LOG"}
